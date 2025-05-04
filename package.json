@@ -6,9 +6,6 @@
   "scripts": {
     "start": "node server.js"
   },
-  "engines": {
-    "node": "18.x"
-  },
   "dependencies": {
     "express": "^4.17.1",
     "puppeteer-core": "^10.1.0",
