@@ -1,11 +1,13 @@
 {
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
+  "functions": {
+    "get-stream.js": {
+      "runtime": "nodejs18.x"
     }
-  ],
-  "engines": {
-    "node": "18.x"
-  }
+  },
+  "routes": [
+    {
+      "src": "/get-stream",
+      "dest": "get-stream.js"
+    }
+  ]
 }
