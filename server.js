@@ -37,8 +37,15 @@ app.get("/get-stream", async (req, res) => {
     // Visit the page and wait for the necessary requests
     await page.goto(decodedUrl, { waitUntil: "domcontentloaded" });
 
-    // Wait for 5 seconds to ensure m3u8 request has time to appear
-    await page.waitForTimeout(5000);
+    // Try to find a specific element that indicates page has loaded completely
+    // If you know a specific selector that indicates the m3u8 link is ready, use it
+    // For example: await page.waitForSelector("div#video-player", { timeout: 10000 });
+
+    // Wait for m3u8 link to appear in the network response (timeout after 10 seconds)
+    const startTime = Date.now();
+    while (m3u8Links.length === 0 && Date.now() - startTime < 10000) {
+      await page.waitForTimeout(500); // Check every 500ms for new network response
+    }
 
     // Check if any m3u8 link has been captured
     if (m3u8Links.length > 0) {
