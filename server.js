@@ -1,38 +1,43 @@
-const express = require("express");
-const cors = require("cors"); // Import CORS
 const puppeteer = require("puppeteer");
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Enable CORS for all origins
-app.use(cors()); // This will allow all websites to make requests to your API
 
 app.get("/get-stream", async (req, res) => {
   const targetUrl = req.query.url;
-  
+
   if (!targetUrl) {
     return res.status(400).json({ error: "URL parameter is missing" });
   }
 
   try {
-    // Decode the URL to ensure it's in the correct format
     const decodedUrl = decodeURIComponent(targetUrl);
 
+    // Launch Puppeteer browser instance
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(decodedUrl, { waitUntil: "domcontentloaded" });
 
-    // Use Puppeteer to extract the m3u8 link from the page
-    const m3u8Link = await page.evaluate(() => {
-      // Replace this with the correct logic to fetch the m3u8 link
-      return document.querySelector("video").src; // Example selector
+    // Array to store the m3u8 links
+    let m3u8Links = [];
+
+    // Intercept network requests and filter for m3u8 requests
+    page.on("response", async (response) => {
+      const url = response.url();
+      // Check if the URL contains .m3u8 (you can refine this further based on your target)
+      if (url.includes(".m3u8")) {
+        m3u8Links.push(url); // Save the m3u8 URL
+      }
     });
 
+    // Visit the page and wait for the necessary requests
+    await page.goto(decodedUrl, { waitUntil: "domcontentloaded" });
+
+    // Wait for some time to allow the m3u8 request to be captured
+    await page.waitForTimeout(5000); // Adjust time as necessary to allow m3u8 link to be fetched
+
+    // Close the browser after capturing the m3u8 link
     await browser.close();
 
-    if (m3u8Link) {
-      res.json({ m3u8: m3u8Link });
+    // If we found m3u8 links, return them
+    if (m3u8Links.length > 0) {
+      res.json({ m3u8: m3u8Links[0] }); // Return the first m3u8 link (you can adjust if there are multiple)
     } else {
       res.status(404).json({ error: "m3u8 link not found" });
     }
@@ -40,8 +45,4 @@ app.get("/get-stream", async (req, res) => {
     console.error("Error fetching m3u8 link:", error);
     res.status(500).json({ error: "Failed to fetch m3u8 link" });
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });
