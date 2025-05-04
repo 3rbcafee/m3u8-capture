@@ -1,5 +1,9 @@
+const express = require("express");
 const puppeteer = require("puppeteer-core");
 const chrome = require("chrome-aws-lambda");
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 app.get("/get-stream", async (req, res) => {
   const targetUrl = req.query.url;
@@ -57,4 +61,8 @@ app.get("/get-stream", async (req, res) => {
     console.error("Error fetching m3u8 link:", error);
     res.status(500).json({ error: "Failed to fetch m3u8 link", details: error.message });
   }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
