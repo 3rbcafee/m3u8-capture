@@ -1,6 +1,7 @@
 {
   "name": "m3u8-capture",
   "version": "1.0.0",
+  "description": "A Node.js app to capture m3u8 links",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
