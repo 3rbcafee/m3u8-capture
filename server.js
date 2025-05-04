@@ -5,64 +5,47 @@ const chrome = require("chrome-aws-lambda");
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Route to get the m3u8 stream
 app.get("/get-stream", async (req, res) => {
-  const targetUrl = req.query.url;
+  const url = req.query.url;
 
-  if (!targetUrl) {
-    return res.status(400).json({ error: "URL parameter is missing" });
+  if (!url) {
+    return res.status(400).send({ error: "URL is required" });
   }
 
   try {
-    const decodedUrl = decodeURIComponent(targetUrl);
-    console.log("Decoded URL:", decodedUrl);
-
-    // Launch Puppeteer with chrome-aws-lambda's Chromium
+    // Launch a headless browser
     const browser = await puppeteer.launch({
-      headless: true,
       executablePath: await chrome.executablePath,
-      args: chrome.args.concat([
-        "--no-sandbox", // Disable sandbox for serverless environments
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage", // Avoid shared memory usage (important for serverless)
-        "--single-process" // Use single process for better memory management
-      ]),
+      args: chrome.args,
       defaultViewport: chrome.defaultViewport,
+      headless: true,
     });
 
     const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "domcontentloaded" });
 
-    let m3u8Links = [];
-
-    page.on("response", async (response) => {
-      const url = response.url();
-      if (url.includes(".m3u8")) {
-        console.log("Found m3u8 link:", url);
-        m3u8Links.push(url);
-      }
+    // Wait for the m3u8 link to appear
+    const m3u8Link = await page.evaluate(() => {
+      // Adjust this code to target the m3u8 URL from the network logs or page
+      const m3u8Element = document.querySelector("video"); // Example: Change this selector
+      return m3u8Element ? m3u8Element.src : null;
     });
 
-    await page.goto(decodedUrl, { waitUntil: "domcontentloaded" });
-
-    const startTime = Date.now();
-    while (m3u8Links.length === 0 && Date.now() - startTime < 10000) {
-      await page.waitForTimeout(500);
-    }
-
-    if (m3u8Links.length > 0) {
-      console.log("m3u8 link found:", m3u8Links[0]);
-      res.json({ m3u8: m3u8Links[0] });
+    if (m3u8Link) {
+      res.json({ m3u8Link });
     } else {
-      console.log("No m3u8 link found.");
-      res.status(404).json({ error: "m3u8 link not found" });
+      res.status(404).send({ error: "m3u8 link not found" });
     }
 
     await browser.close();
   } catch (error) {
     console.error("Error fetching m3u8 link:", error);
-    res.status(500).json({ error: "Failed to fetch m3u8 link", details: error.message });
+    res.status(500).send({ error: "Failed to fetch m3u8 link" });
   }
 });
 
+// Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
