@@ -1,13 +1,19 @@
 {
-  "name": "m3u8-capture-server",
+  "name": "m3u8-capture",
   "version": "1.0.0",
-  "description": "Captures .m3u8 links using Puppeteer from dynamic URLs",
+  "description": "M3U8 Capture Service",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "puppeteer": "^21.3.8"
-  }
+    "express": "^4.17.1",
+    "puppeteer": "^19.0.0",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "16.x"
+  },
+  "author": "QL",
+  "license": "ISC"
 }
