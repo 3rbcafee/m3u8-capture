@@ -1,49 +1,47 @@
 const express = require("express");
+const cors = require("cors"); // Import CORS
 const puppeteer = require("puppeteer");
+
 const app = express();
+const port = process.env.PORT || 3000;
+
+// Enable CORS for all origins
+app.use(cors()); // This will allow all websites to make requests to your API
 
 app.get("/get-stream", async (req, res) => {
   const targetUrl = req.query.url;
-
-  if (!targetUrl || !targetUrl.startsWith("http")) {
-    return res.status(400).json({ error: "Missing or invalid 'url' parameter" });
+  
+  if (!targetUrl) {
+    return res.status(400).json({ error: "URL parameter is missing" });
   }
 
   try {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    });
+    // Decode the URL to ensure it's in the correct format
+    const decodedUrl = decodeURIComponent(targetUrl);
 
+    const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    let streamUrl = null;
+    await page.goto(decodedUrl, { waitUntil: "domcontentloaded" });
 
-    page.on("response", async (response) => {
-      const url = response.url();
-      if (url.endsWith(".m3u8") && !streamUrl) {
-        streamUrl = url;
-      }
+    // Use Puppeteer to extract the m3u8 link from the page
+    const m3u8Link = await page.evaluate(() => {
+      // Replace this with the correct logic to fetch the m3u8 link
+      return document.querySelector("video").src; // Example selector
     });
-
-    await page.goto(targetUrl, {
-      waitUntil: "networkidle2",
-      timeout: 0
-    });
-
-    await page.waitForTimeout(10000); // wait 10 seconds for the m3u8 to appear
 
     await browser.close();
 
-    if (streamUrl) {
-      res.json({ m3u8: streamUrl });
+    if (m3u8Link) {
+      res.json({ m3u8: m3u8Link });
     } else {
-      res.status(404).json({ error: "Stream not found" });
+      res.status(404).json({ error: "m3u8 link not found" });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error processing the page" });
+  } catch (error) {
+    console.error("Error fetching m3u8 link:", error);
+    res.status(500).json({ error: "Failed to fetch m3u8 link" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
